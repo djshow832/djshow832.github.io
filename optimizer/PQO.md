@@ -4,16 +4,18 @@
 在 OLTP 系统中，SQL 语句常常有特定的 SQL 模板。对于具有相同 SQL 模板的 SQL 语句，数据库系统可以先将 SQL 参数化为 SQL 模板，然后复用中间结果。例如<br>
 ```sql
 # SQL 语句
-SELECT order.price
-	FROM order JOIN user ON order.user_id = user.user_id
-	WHERE user.city = 'BeiJing' AND order.create_time > '2019-1-1';
+SELECT order.price, customer.name
+	FROM order JOIN customer ON order.customer_id = customer.id
+	WHERE customer.city = 'BeiJing' AND order.create_time > '2019-1-1';
 	
 # SQL 模板
-SELECT order.price
-	FROM order JOIN user ON order.user_id = user.user_id
-	WHERE user.city = ? AND order.create_time > ?;
-```<br>
+SELECT order.price, customer.name
+	FROM order JOIN customer ON order.customer_id = customer.id
+	WHERE customer.city = ? AND order.create_time > ?;
+```
+
 这类优化称作 Parametric Query Optimization(PQO)。<br>
+
 PQO 的流程分为 compile-time 和 run-time。<br>
 - compile-time 的输入是 SQL 模板，调用一次优化器，产生中间结果。
 - run-time 的输入是参数值，调用优化器和执行器，输出运行结果。<br>
