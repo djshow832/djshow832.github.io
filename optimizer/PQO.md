@@ -39,10 +39,10 @@ PQO 的流程分为 compile-time 和 run-time。<br>
 PQO 主要研究 Dynamic-plan Optimization。
 
 ### PQO 的假设
-PQO 有几个假设：<br>
+PQO 基于几个假设：<br>
 - Run-time 得到的统计信息都是准确的。
-- 表的 row count 在 compile-time 是已知的。
-- 计划的代价公式在参数空间内是线性函数或分段线性函数。<br>
+- 表的 row count 在 compile-time 是已知的，仅与参数相关的统计信息未知，如 selectivity、NDV 等。
+- 计划的代价公式在参数空间内是线性函数或分段线性函数。比如 selectivity 越大，代价越大。<br>
 
 还有一些关于代价公式的其他假设，这些假设并非总是成立，但对于多数 TP 场景是成立的。
 
@@ -86,20 +86,22 @@ choosen-plan 本质上也是一个物理算子，它本身也有代价。令 cho
 **清理低频子计划**：长时间没有被使用的子计划，可以从算子树中移除。<br>
 
 ## PPQO
-### PPQO 简介
+### PPQO 的目标和假设
 以 choose-plan 算子为代表的 PQO 有两大缺陷：<br>
 - PQO 假设物理计划的代价公式在参数空间是线性或分段线性的，并且最优计划的参数空间是连续且凸面的，然而现实中并不是这样。
-- PQO 在 compile-time 的代价过高，然而有些查询模板很少出现，或者有些参数很少出现，每次为每种参数计算最优计划很浪费。<br>
+- PQO 在 compile-time 的代价过高，然而有些 SQL 模板很少出现，或者有些参数很少出现，每次为每种参数计算最优计划很浪费。<br>
 
 因此 2009 年的论文 *Progressive Parametric Query Optimization* 提出了渐近式的 PQO —— PPQO。<br>
 PPQO 的目标并不是找到最优计划，而是找出一个近优的计划即可。也就是说，选择的计划与最优计划的代价只要不差太多就行。而这个“太多”的定义，用户可以通过自定义参数来调整。<br>
+PPQO 为每个查询缓存了多条计划，每个计划都至少在一个场景下是最优的，但并不一定包含所有场景下的最优计划。这些计划并不是在 compile-time 一次全部加进去的，而是随着查询的增加，Plan Cache 容纳越来越多的计划。所以，对于很少出现的 SQL 模板，或者很少出现的参数范围，PPQO 没有浪费时间在它们上面。<br>
+
+PPQO 只适用于 predicate 中包含列的等值查询，而 NDV 等其他统计信息、列的范围查询都不在考虑范围内。所以，PPQO 的参数空间等价于选择度空间。<br>
 PPQO 仍然基于对代价函数的一些假设。它假设随着选择度（selectivity) 的增大，代价是单调递增且连续的。这也符合大多情况。<br>
 
 PPQO 有两个互相矛盾的目标。为此，文中提出了两种 PPQO 算法，分别侧重于这两个目标：<br>
 - 选择的计划更优。前面提到，PPQO 选择的是近优的计划，所以近优计划的代价越接近最优计划越好。Bounded-PPQO 的目标是尽可能找到更优的计划。
 - 调用优化器的次数降到最少。与 PQO 不同，PPQO 在 run-time 找不到近优计划时，会重新调用优化器。Ellipse-PPQO 倾向于使 PPQO 调用优化器的次数尽量少。<br>
 
-PPQO 为每个查询缓存了多条计划，每个计划都至少在一个场景下是最优的。<br>
 令 T 为查询 q 对应的 Plan Cache，T 里的每个计划 p，都附带它的参数的选择度 s、代价 c。
 Bounded-PPQO 和 Ellipse-PPQO 都要实现 addPlan 和 getPlan 函数。
 - addPlan：调用优化器后如果生成了一个新的计划 p，addPlan 负责把 p 添加到 T 中。
