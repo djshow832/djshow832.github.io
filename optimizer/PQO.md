@@ -53,8 +53,7 @@ PQO 基于几个假设：<br>
 
 该算法与传统的 Volcano 优化器不同。Volcano 在自顶向下搜索时，要求算子的代价都是确定的值，总是可以比较的，即代价是全序的。<br>
 而在 PQO 的 compile-time，优化器因为没有实际的参数值，也就得不到确定的代价。作者把代价估算成一个范围，只有范围没有重叠才可以比较，否则就不可比较，所以代价是偏序的。<br>
-例如 `Cost(A) = [1, 5]`,  `Cost(B) = [2, 7]`,  `Cost(C) = [6, 9]`<br>
-那么可以确定 Cost(A) < Cost(C)，但 Cost(A) 与 Cost(B) 是无法比较的。<br>
+例如 `Cost(A) = [1, 5]`,  `Cost(B) = [2, 7]`,  `Cost(C) = [6, 9]`，可以确定 Cost(A) < Cost(C)，但 Cost(A) 与 Cost(B) 是无法比较的。<br>
 
 对于无法比较代价的算子树，不必立即判断，而是把子树都保留，并在上层加一个 choose-plan 算子，作为它们的父节点。choose-plan 算子可以出现在任意算子之上，出现任意多次。<br>
 在执行前，结合实际的统计信息，算出各个子树实际的代价，并选择代价最低的那一个子树。
@@ -65,6 +64,7 @@ PQO 基于几个假设：<br>
 - 用户自定义的变量，例如数据库的系统参数。
 - 子查询的结果，这里特指使用 Apply 算子的子查询算法。
 - prepared statement 的 predicate 的 selectivity，其中 predicate 包含未绑定变量。<br>
+
 而 PQO 中的参数，近似于最后一条的定义。<br>
 
 虽然 choose-plan 算子的应用范围很广，但在后续其他人的研究中，都把 choose-plan 当作一种 PQO 的算法来参考。本文也把参数定义为 SQL 模板中的绑定变量，不考虑运行时资源等其他变量。
@@ -169,7 +169,7 @@ Bounded-PPQO 和 Ellipse-PPQO 都要实现 addPlan 和 getPlan 函数。
 那么假如 s' 满足 `|s1 - s2| / (|s1 - s'| + |s2 - s'|) >= delta`，就返回计划 p。<br>
 
 在一维选择度空间（SQL 模板里仅有 1 个参数）中，p 的选择度范围是一条线段。也就是说，只要 s 在这条线段内，那么返回的计划都是 p。<br>
-在二维选择度空间（SQL 模板里有 2 个参数）中，p 的选择度范围是一个椭圆。因为上述公式改写到二维空间中，就是椭圆的公式，其中 s1 和 s2 是椭圆的焦点。<br>
+在二维选择度空间（SQL 模板里有 2 个参数）中，p 的选择度范围是一个椭圆。因为上述公式改写到二维空间中，就是椭圆的公式，其中 s1 和 s2 是椭圆的焦点。Ellipse-PPQO 的名字由此得来。<br>
 所以，Ellipse-PPQO 的含义是，已知计划 p 在两个选择度 s1 和 s2 上都是最优的，那么对于 s1 和 s2 附近的选择度范围内，都可以使用计划 p。<br>
 
 同样的，随着查询次数的增加，Plan Cache 的命中率越来越高。
@@ -188,10 +188,6 @@ Bounded-PPQO 和 Ellipse-PPQO 都要实现 addPlan 和 getPlan 函数。
 - 从 Plan Cache 的角度，要求尽量少调用优化器。
 - 从 CBO 的角度，要求选择的计划尽量更优。<br>
 
-接下来的讨论中，我们也假设如下几点：<br>
-- 统计信息都是准确的。
-- 参数空间可以简化为选择度空间。<br>
-
 从工程的角度，PQO 还需要解决以下几点问题，才够实用：<br>
 - compile-time 和 start-up time。
 - Plan Cache 占用的内存空间。
@@ -204,6 +200,7 @@ compile-time 在以下几个时间点会进行：
 - 数据库进程启动后，SQL 引擎在第一次执行特定 SQL 模板时。
 - 执行 DDL 后，Plan Cache 可能失效。例如加索引。
 - 统计信息刷新后，Plan Cache 可能也会失效。例如 row count 会变化、selectivity 的取值范围会变化。<br>
+
 在实际的数据库系统中，compile-time 过长，会使数据库的执行时间不稳定，甚至出现卡顿。<br>
 
 几种 PQO 算法都是在 compile-time 把所有最优计划求出来。choose-plan 算法裁剪了较少的子树；基于 POSP 的 PQO 需要调用数次优化器。在有多个参数时，这两类算法都占用较长的 compile-time。<br>
@@ -243,11 +240,13 @@ PQO 假设 selectivity、NDV 总是准确的，因为 PQO 认为优化器返回�
 可以发现，参数空间可以简化为选择度空间。<br>
 
 #### 代价函数
-在论文 *Analyzing Plan diagrams of database query optimizers* 中提到，PQO 关于代价函数的几个假设，事实上都不成立：<br>
+论文 *Analyzing Plan diagrams of database query optimizers* 把 POSP 可视化为 plan diagram，并通过观察 plan diagram 的特征，得出一个结论：PQO 关于代价函数的几个假设，事实上都不成立：<br>
 - 凸性：如果计划 p 在参数空间的 a 点和 b 点都是最优的，那么在 a 和 b 之间的任意点都是最优的。
 - 唯一性：在整个选择度空间，单个计划只可能在一个连续区域上是最优的，不会是两个不连通的区域。
 - 同质性：单个计划在它围起来的整个区域内都是最优的，不会存在“孤岛”。<br>
 
+至于哪些情况下代价函数满足上述特性，我还没有看到有相关总结。<br>
+但是，这篇论文也传递了一个好消息，虽然代价函数的特征非常复杂且没有规律可循，但把 plan diagram 简化为 reduced plan diagram 之后，以上特征基本成立。换句话说，以上特征虽然不成立，但也没有相差太远。<br>
 而基于 POSP 的 PQO 算法都强依赖于这些假设，choose-plan 算子和 PPQO 弱依赖于这些假设。
 
 ### 对优化器的逻辑侵入
@@ -271,10 +270,11 @@ PQO 假设 selectivity、NDV 总是准确的，因为 PQO 认为优化器返回�
 - 对于简单的 OLTP 查询，有时 RBO + Plan Cache 就已经足够，连 CBO 都用不着。
 - 对于复杂的查询，通常又使用 OLAP 系统，执行时间远大于优化时间，使用 Run-time Optimization 即可。
 - 对于 ad-hoc 查询，或 OLAP 查询，很少有固定的 SQL 模板，用 Run-time Optimization 即可。<br>
+
 可见，PQO 的应用范围并没有那么广。<br>
 
 ### 总结
 通过上面的比较，个人比较看好 PPQO。它可以非常灵活地调整 compile-time、内存占用、start-up time 之间的平衡，并且对优化器的侵入也很小，尝试成本很低。<br>
 
-关于 PPQO 的局限，也非常明确。虽然学术上有大量研究，但目前很少有数据库尝试，主要因为 SQL 引擎还没发展到可以完全依赖 CBO 的阶段。<br>
-但是我相信，等未来 CBO 足够成熟了，PPQO 或类 PPQO 的算法，将大有用武之地。
+PPQO 的局限也非常明确，它强依赖于 CBO 的正确性和代价函数的简单特征。所以即使学术上有大量研究，目前仍然很少有数据库尝试。<br>
+但是我相信，等未来 CBO 足够成熟了，PPQO 或类 PPQO 的算法，还是有很大应用空间的。
