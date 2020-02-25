@@ -23,7 +23,7 @@ CockroachDB 通过 [Statements Page](https://www.cockroachlabs.com/docs/stable/a
 
 以下是单条 SQL 的详情页面：
 
-![crdb-statements-details-page](/media/crdb-statements-details-page.png)
+![crdb-details-page](/media/crdb-statements-details-page.png)
 
 ## OceanBase
 
@@ -68,7 +68,7 @@ Oracle 没有把 SQL 规一化再进行分类的视图。它的视图都是从 S
 
 点击 ID，就可以查看单条 SQL 的详细信息，甚至包含执行计划每阶段的监控：
 
-![oracle-sql-monitor-details](/media/oracle-sql-monitor-details.jpg)
+![oracle-sql-monitor-details](/media/oracle-sql-monitor-details.gif)
 
 ## MySQL
 
