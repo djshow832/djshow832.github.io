@@ -19,11 +19,11 @@ CockroachDB 通过 [Statements Page](https://www.cockroachlabs.com/docs/stable/a
 
 以下是所有 SQL 的展示页面：
 
-![crdb-statements-page](/media/crdb-statements-page.png)
+![crdb-statements-page](/media/diagnosis/crdb-statements-page.png)
 
 以下是单条 SQL 的详情页面：
 
-![crdb-details-page](/media/crdb-statements-details-page.png)
+![crdb-details-page](/media/diagnosis/crdb-statements-details-page.png)
 
 ## OceanBase
 
@@ -39,7 +39,7 @@ OceanBase 提供了一系列的[系统表和视图](https://www.yuque.com/oceanb
 
 查询 `v$sql_audit`：
 
-![ob-sql-audit](/media/ob-sql-audit.png)
+![ob-sql-audit](/media/diagnosis/ob-sql-audit.png)
 
 ## Oracle
 
@@ -64,11 +64,11 @@ Oracle 没有把 SQL 规一化再进行分类的视图。它的视图都是从 S
 
 另外 Oracle 还提供了可视化的工具 [SQL Monitor](https://docs.oracle.com/en/database/oracle/oracle-database/19/tgsql/monitoring-database-operations.html) 。SQL Monitor 中可以显示 SQL 监控信息，下图是显示 `V$SQL_MONITOR` 的信息：
 
-![oracle-sql-monitor](/media/oracle-sql-monitor.jpg)
+![oracle-sql-monitor](/media/diagnosis/oracle-sql-monitor.jpg)
 
 点击 ID，就可以查看单条 SQL 的详细信息，甚至包含执行计划每阶段的监控：
 
-![oracle-sql-monitor-details](/media/oracle-sql-monitor-details.gif)
+![oracle-sql-monitor-details](/media/diagnosis/oracle-sql-monitor-details.gif)
 
 ## MySQL
 
@@ -88,7 +88,7 @@ MySQL 5.7.7 及以上版本提供了 sys schema，其中包含了一系列封装
 
 查询如下：
 
-![mysql-stmt-summary](/media/mysql-stmt-summary.png)
+![mysql-stmt-summary](/media/diagnosis/mysql-stmt-summary.png)
 
 ## DRDS
 
@@ -98,11 +98,11 @@ DRDS 作为云服务，可以异步抓取日志，用专门的集群进行分析
 
 用户可以通过写查询语句来查询 SQL 日志：
 
-![drds-audit-log](/media/drds-audit-log.png)
+![drds-audit-log](/media/diagnosis/drds-audit-log.png)
 
 还可以查看每一类 SQL 的信息：
 
-![drds-sql-audit](/media/drds-sql-audit.png)
+![drds-sql-audit](/media/diagnosis/drds-sql-audit.png)
 
 ## TiDB
 
