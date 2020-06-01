@@ -386,6 +386,7 @@ AgensGraph-ext 实现图数据库离不开 PG 的几个功能：
 * TimescaleDB 对用户透明地把 hypertable 拆分成多个 chunk 以提升插入性能
 * TimescaleDB 后台自动把历史数据转换为列存，以提升查询性能
 * AgensGraph 把图数据以关系表的形式存储
+* 半结构化的数据使用 JSON/JSONB 类型存储
 
 在查询上：
 
