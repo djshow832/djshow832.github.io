@@ -233,13 +233,29 @@ PG 的存储特性是只增不改，很适合时序数据库。PG 通过 AUTOVAC
 
 但 chunk 也不是完全透明。例如用户可以通过 `move_chunk()` 移动 chunk 到某个 tablespace，这样可以把更久的数据移到更便宜的磁盘上。
 
+### 压缩
+
 查询最近的数据一般会选择更小的时间、更多的字段，用行存更合适；但是历史数据相反，用列存更合适。可以配置 TimescaleDB 异步地把行存压缩成列存。例如把 7 天前的数据进行压缩：
 
 ```sql
 SELECT add_compress_chunks_policy('measurements', INTERVAL '7 days');
 ```
 
-用户还可以指定列存的 main key，查询中通过 main key 过滤将非常高效。
+PG 不支持列存，TimescaleDB [使用行存实现了近似列存的效果](https://blog.timescale.com/blog/building-columnar-compression-in-a-row-oriented-database/)。它压缩的方式是把 N 行记录压缩到一行，每个字段都是数组形式。由于 PG 每行都有额外的 27 字节空间开销，通过这种方式不仅压缩了空间，还节省了每行的额外空间。
+
+PG 正常读取数据时会多读一些，而读取列存最好只读需要的数据。TimescaleDB 通过 PG 的 TOAST 存储来实现，heap table 里仅仅存储指向 TOAST 数据的指针。
+
+但是压缩也带来一个问题，就是按字段查询时必须把全部数据解压，因为并不能知道每一行包含的数据范围。为了解决这一问题，TimescaleDB 允许用户设置压缩的 `orderby` 和 `segmentby` 列。
+
+* 对于 `orderby` 列，表还会记录每一行中该列的最大、最小值。这样可以快速地按该列过滤。一般 main key 就是时间戳。
+* 对于 `segmentby` 列，该列就是表的 main key，表中的数据会按该列聚合，每一行（即 N 条数据）的该列值是相同的。但是每一行仍然最多包含 N 条记录。
+
+例如按 `Device ID` 来 `segment by`，按 `Timestamp` 来 `orderby`：
+
+| Device ID | Timestamp	 | Status Code | Temperature | Min Timestamp | Max Timestamp |
+| ---- | ---- | ---- | ---- | ---- | ---- |
+| A	 | [12:00:01, 12:00:02, 12:00:03] | [0, 0, 0] | [70.11, 70.12, 70.14] | 12:00:01 | 12:00:03 |
+| B | [12:00:01, 12:00:02, 12:00:03] | [0, 0, 0] | [70.11, 70.12, 70.14] | 12:00:01 | 12:00:03 |
 
 ### 查询语言
 
@@ -276,6 +292,7 @@ TimescaleDB 实现时序数据库离不开 PG 的几个功能：
 * JSON/JSONB 类型
 * 窗口函数
 * 扩展 SQL 函数
+* TOAST
 
 ## AgensGraph
 
@@ -384,7 +401,7 @@ AgensGraph-ext 实现图数据库离不开 PG 的几个功能：
 
 * PostGIS 充分利用到 GiST、SP-GiST、BRIN 索引
 * TimescaleDB 对用户透明地把 hypertable 拆分成多个 chunk 以提升插入性能
-* TimescaleDB 后台自动把历史数据转换为列存，以提升查询性能
+* TimescaleDB 用行存模拟列存，并在后台自动把历史数据转换为列存，以提升查询性能
 * AgensGraph 把图数据以关系表的形式存储
 * 半结构化的数据使用 JSON/JSONB 类型存储
 
