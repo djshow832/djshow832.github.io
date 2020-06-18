@@ -250,7 +250,7 @@ PG 正常读取数据时会多读一些，而读取列存最好只读需要的�
 * 对于 `orderby` 列，表还会记录每一行中该列的最大、最小值。这样可以快速地按该列过滤。一般 main key 就是时间戳。
 * 对于 `segmentby` 列，该列就是表的 main key，表中的数据会按该列聚合，每一行（即 N 条数据）的该列值是相同的。但是每一行仍然最多包含 N 条记录。
 
-例如按 `Device ID` 来 `segment by`，按 `Timestamp` 来 `orderby`：
+例如按 `Device ID` 来 `segmentby`，按 `Timestamp` 来 `orderby`：
 
 | Device ID | Timestamp	 | Status Code | Temperature | Min Timestamp | Max Timestamp |
 | ---- | ---- | ---- | ---- | ---- | ---- |
