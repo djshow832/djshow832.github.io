@@ -4,9 +4,10 @@ title:  "PostgreSQL based multi-model databases"
 date:   2020-5-30 21:08:57 +0800
 categories: pg
 ---
-## PG 扩展
 
-### 基于 PG 的数据库
+# PG 扩展
+
+## 基于 PG 的数据库
 
 PostgreSQL（以下简称 PG）是当下最流行的数据库之一，很多数据库都是基于 PG 开发的。
 
@@ -22,7 +23,7 @@ PostgreSQL（以下简称 PG）是当下最流行的数据库之一，很多数�
 
 从直觉上来说，这些数据库一般归为 NoSQL 数据库，它们的解析器、优化器、执行器、存储引擎等各个流程都与 RDBMS 不一样。而 PG 扩展是无法替换这些模块的，那么它们是如何实现的呢？
 
-### 基于 PG 扩展的优势
+## 基于 PG 扩展的优势
 
 不难理解，基于 PG 扩展的数据库，有以下优势：
 
@@ -38,7 +39,7 @@ PostgreSQL（以下简称 PG）是当下最流行的数据库之一，很多数�
 * Citus：[What it means to be a Postgres extension](https://www.citusdata.com/blog/2017/10/25/what-it-means-to-be-a-postgresql-extension/)
 * PipelineDB：[One More Release Until PipelineDB is a PostgreSQL Extension](https://www.pipelinedb.com/blog/pipelinedb-0-9-9-one-more-release-until-pipelinedb-is-a-postgresql-extension)
 
-### PG 扩展简介
+## PG 扩展简介
 
 PG 流行的原因，除了开源，还有其强大的扩展性。它们帮助 PG 建立起了强大的生态圈，也正是生态圈使得更多数据库选择以 PG 扩展的形式存在。
 
@@ -53,7 +54,7 @@ PG 流行的原因，除了开源，还有其强大的扩展性。它们帮助 P
 
 用户只需要简单的 `CREATE/DROP EXTENSION [extension_name]` 就可以安装/卸载扩展。
 
-### PG 扩展的组成
+## PG 扩展的组成
 
 创建扩展一般需要 4 种文件：
 
@@ -70,11 +71,11 @@ PG 流行的原因，除了开源，还有其强大的扩展性。它们帮助 P
 
 可见，PG 在设计时就充分考虑了扩展性。本文介绍的几款数据库，就是通过以上功能实现的。
 
-## PostGIS
+# PostGIS
 
 PostGIS 是当下最流行的空间数据库。PostGIS 最基础的三个模块是空间数据类型、空间索引和空间函数。PostGIS 通过向 PG 扩展以上三个模块以实现空间数据库。
 
-### 空间数据类型
+## 空间数据类型
 
 PostGIS 支持两种空间对象：
 
@@ -108,7 +109,7 @@ PG 还有原生的语法进行类型转换，例如：
 SELECT 'SRID=4326;POINT(0 0)'::geometry;
 ```
 
-### 空间索引
+## 空间索引
 
 对多边形进行计算，计算量非常大，但如果把它们简化为矩形，计算就快很多。即使是最复杂的多边形和线串（LineString) 也可以用一个简单的 bounding box（边界框）来表示。二维图形的 bounding box 是一个矩形，三维是一个长方体。
 
@@ -120,7 +121,7 @@ BTree 只能搜索一维数据，而空间索引需要检索多维数据。空�
 
 PG 原生就支持 GiST 索引、SP-GiST 索引和 BRIN 索引。因此 PostGIS 可以直接借助这些索引实现空间索引。
 
-#### GiST 索引
+### GiST 索引
 
 GiST(Generalized Search Trees，通用搜索树) 和 BTree 一样，是平衡树结构。GiST 准确地说并不算一种索引类型，而是一种模板，RTree 就是在 GiST 之上实现的。
 
@@ -138,7 +139,7 @@ GiST 建索引速度较慢，写入性能不好，占的空间也比较大。只
 CREATE INDEX [indexname] ON [tablename] USING GIST ( [geometryfield] ); 
 ```
 
-#### SP-GiST 索引
+### SP-GiST 索引
 
 SP-GiST(Space-Partitioned GiST)，也是一种模板，可以在它之上实现 partitioned search tree，例如四叉树、KD 树、字典树。它迭代地把数据集分成更小的区域，但与 GiST 不一样，它不是平衡树，每个子数据集的大小也不需要相等。
 
@@ -150,7 +151,7 @@ SP-GiST(Space-Partitioned GiST)，也是一种模板，可以在它之上实现 
 CREATE INDEX [indexname] ON [tablename] USING SPGIST ( [geometryfield] ); 
 ```
 
-#### BRIN 索引
+### BRIN 索引
 
 BRIN(Block Range Index) 的思想是以 table block（或叫 range）为单位划分整张表，存储每个 range 中所有几何体的 bounding box。在查询时，可以快速过滤掉不符合条件的 range。它适用于数据有序的场景，这样 range 的 bounding box 互不相交，可以有效地过滤 range。
 
@@ -162,7 +163,7 @@ BRIN 用查询效率换取了写入效率。它的存储空间比 GiST 小很多
 CREATE INDEX [indexname] ON [tablename] USING BRIN ( [geometryfield] ); 
 ```
 
-### 空间函数
+## 空间函数
 
 空间数据库需要有分析和处理 GIS 对象的能力。前面讲到，PG 支持扩展 SQL 函数，所以 PostGIS 在 PG 上扩展了很多函数，实现了这些能力。例如：
 
@@ -181,7 +182,7 @@ CREATE OR REPLACE FUNCTION _ST_Intersects(geom1 geometry, geom2 geometry)
 
 除函数外，还支持操作符进行近似计算。例如使用 `geom1 && geom2` 代替 `ST_Intersects(geom1, geom2)` 检查 `geom1` 和 `geom2` 否相交，会只通过 bounding box 进行近似查询。由于操作符是纯索引查询，不需要精确计算，所以效率高很多。
 
-### 查询语言
+## 查询语言
 
 空间数据库与关系型数据库的差异不算大，它仍然可以用关系表存储，用 SQL 查询。
 
@@ -192,7 +193,7 @@ SELECT * FROM geom_table1 INNER JOIN geom_table2 ON
 		ST_Intersects(geom_table1.geom, geom_table2.geom);
 ```
 
-### 总结
+## 总结
 
 PostGIS 实现空间数据库离不开 PG 的几个功能：
 
@@ -200,7 +201,7 @@ PostGIS 实现空间数据库离不开 PG 的几个功能：
 * 扩展 SQL 函数
 * GiST 和 RTree 索引
 
-## TimescaleDB
+# TimescaleDB
 
 TimescaleDB 是除 InfluxDB 外最流行的时序数据库。
 
@@ -213,7 +214,7 @@ TimescaleDB 是除 InfluxDB 外最流行的时序数据库。
 
 TimescaleDB 必须要适应以上这些需求。
 
-### 存储
+## 存储
 
 由于时序数据库的数据量巨大，如果用单个 BTree 存储，当单表的数据量达到 TB 级别后写入性能必然严重下降。
 
@@ -233,7 +234,7 @@ PG 的存储特性是只增不改，很适合时序数据库。PG 通过 AUTOVAC
 
 但 chunk 也不是完全透明。例如用户可以通过 `move_chunk()` 移动 chunk 到某个 tablespace，这样可以把更久的数据移到更便宜的磁盘上。
 
-### 压缩
+## 压缩
 
 查询最近的数据一般会选择更小的时间、更多的字段，用行存更合适；但是历史数据相反，用列存更合适。可以配置 TimescaleDB 异步地把行存压缩成列存。例如把 7 天前的数据进行压缩：
 
@@ -257,7 +258,7 @@ PG 正常读取数据时会多读一些，而读取列存最好只读需要的�
 | A	 | [12:00:01, 12:00:02, 12:00:03] | [0, 0, 0] | [70.11, 70.12, 70.14] | 12:00:01 | 12:00:03 |
 | B | [12:00:01, 12:00:02, 12:00:03] | [0, 0, 0] | [70.11, 70.12, 70.14] | 12:00:01 | 12:00:03 |
 
-### 查询语言
+## 查询语言
 
 典型的时序数据库是 schema-free 的，例如 InfluxDB 和 OpenTSDB。为了处理半结构化数据，例如传感器会采集到各种度量 (metric)。TimescaleDB 可借助 JSON 和 JSONB 来达到此目的。
 
@@ -284,7 +285,7 @@ TimescaleDB 借助窗口函数实现实时聚合，例如：
 
 不得不说有些反直觉。
 
-### 总结
+## 总结
 
 TimescaleDB 实现时序数据库离不开 PG 的几个功能：
 
@@ -294,7 +295,7 @@ TimescaleDB 实现时序数据库离不开 PG 的几个功能：
 * 扩展 SQL 函数
 * TOAST
 
-## AgensGraph
+# AgensGraph
 
 AgensGraph 在图数据库中还不算流行，但也有不小的影响力。准确地说，AgensGraph 不算 PG 扩展，它是基于 PG 改造的图数据库，使用自己的存储引擎和图查询引擎。
 
@@ -302,7 +303,7 @@ AgensGraph 在图数据库中还不算流行，但也有不小的影响力。准
 
 但是 AgensGraph 已经开始调整方向，并发布了 [agensgraph-ext](https://github.com/bitnine-oss/agensgraph-ext)，一款基于 PG 扩展的图数据库。关于调整方向的原因，参考讨论：[AgensGraph postgres extension](https://github.com/bitnine-oss/agensgraph/issues/268)。
 
-### 存储
+## 存储
 
 图数据模型包含各类对象：graph、vertex、edge、vertex label、edge label、property 等。AgensGraph 使用图存储引擎存储这些对象，但 AgensGraph-ext 显然不能这么操作，只能用关系表存储。
 
@@ -337,7 +338,7 @@ Edge label 对应的表中包含 edge id、start_id、end_id、properties。其�
 
 这样，AgensGraph-ext 把图模型包含的对象都存储到了关系表中。
 
-### 查询语言
+## 查询语言
 
 由于图模型的特殊性，图数据库一般需要特殊的语言进行查询，例如 Cypher、Gremlin 等。AgensGraph 的查询语言很灵活，支持 SQL、Cypher 以及 SQL + Cypher 的混合查询。可以在 SQL 中嵌入 Cypher，也可以在 Cypher 中嵌入 SQL。
 
@@ -386,14 +387,14 @@ SELECT * FROM cypher('example', $$
 $$) AS (con_path agtype);
 ```
 
-### 总结
+## 总结
 
 AgensGraph-ext 实现图数据库离不开 PG 的几个功能：
 
 * 扩展数据类型
 * 扩展 SQL 函数
 
-## 总结
+# 总结
 
 以上分析了 PostGIS、TimescaleDB、AgensGraph 的大体实现方式，现在它们的原理很清楚了。
 

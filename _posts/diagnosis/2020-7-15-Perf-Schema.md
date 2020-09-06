@@ -5,17 +5,17 @@ date:   2020-7-15 20:48:57 +0800
 categories: diagnosis
 ---
 
-## 前言
+# 前言
 
 虽然 MySQL 的实现比 Oracle 简单，但排查问题的工具远远没有 Oracle 强大。MySQL 的排查工具主要由系统库 `performance_schema` 提供，我们可以通过查询系统表的方法来排查性能问题。然而 MySQL 官网对 `performance_schema` 的介绍不够整体，用户往往不知道如何下手。
 
 本文先搂清这些系统表的大致框架，然后从实践角度举例如何排查性能问题。
 
-## 事件表
+# 事件表
 
 讲到 `performance_schema` 就绕不开“事件”这个概念。`performance_schema` 中有很多 `events_xxx` 表，查找性能问题主要从事件开始。
 
-### 事件类型
+## 事件类型
 
 MySQL 中的”事件“比我们常理解的事件更宽泛。它的事件主要有几类，粒度从大到小分别是：
 
@@ -28,7 +28,7 @@ MySQL 中的”事件“比我们常理解的事件更宽泛。它的事件主�
 
 以上每种事件都有自己的 event id，它们可以根据 event id 相关联，后面会讲到。
 
-### 设置记录事件
+## 设置记录事件
 
 为了节省性能和内存，MySQL 并非默认记录所有的事件。在查看事件表前，需要先打开对应的开关。
 
@@ -49,7 +49,7 @@ UPDATE performance_schema.setup_instruments
 
 否则在 `events_statements_xxx` 中查看不到使用二进制协议执行的 prepared statement。
 
-### 事件历史表
+## 事件历史表
 
 Statement 等每种事件有多张表。常见的有：
 
@@ -67,7 +67,7 @@ UPDATE performance_schema.setup_consumers
 	WHERE NAME = 'events_statements_history_long';
 ```
 
-### 事件间的关联
+## 事件间的关联
 
 Transaction、Statement、Stage、Wait 事件是嵌套的关系，前者嵌套后者。它们可以根据历史表中的 `EVENT_ID` 和 `NESTING_EVENT_ID` 相关联。`NESTING_EVENT_ID` 字段是父事件的 `EVENT_ID`，例如 stage 的 `NESTING_EVENT_ID` 就是对应 statement 的 `EVENT_ID`。
 
@@ -79,7 +79,7 @@ Transaction、Statement、Stage、Wait 事件是嵌套的关系，前者嵌套�
 
 这样，就能找到整个 statement 中最耗时的等待事件。
 
-### 事件汇总表
+## 事件汇总表
 
 历史表中记录了每一个事件的详细信息，如果要查看每类事件的统计数据，例如耗时最长的 SQL、文件 IO 的平均等待时间等，可以查看事件汇总表。
 
@@ -98,11 +98,11 @@ Transaction、Statement、Stage、Wait 事件是嵌套的关系，前者嵌套�
 * `statement_analysis` 的基表是 `events_statements_summary_by_digest`，使用 `SUM_TIMER_WAIT` 排序，可以快速找到消耗资源最大的 SQL，改进业务
 * `waits_global_by_latency` 的基表是 `events_waits_summary_global_by_event_name`，排除了 IDLE 事件，使用 `SUM_TIMER_WAIT` 排序，当很多 SQL 都很慢时，可以快速找到有问题的等待事件
 
-## 诊断 SQL
+# 诊断 SQL
 
 有以上面的基本概念，下面演示如何诊断 SQL。
 
-### 定位单条 SQL 的等待事件
+## 定位单条 SQL 的等待事件
 
 要查看单条慢 SQL 的各项指标，一般使用 slow log。但在生产环境中，有时 MySQL 只开放了 3306 端口，并不能直接打开 slow log。这时可以查询 `events_statements_history` 来代替：
 
@@ -161,7 +161,7 @@ mysql> select event_id, event_name, source, sys.format_time(timer_wait) from per
 
 在上面的例子中，SQL 的总耗时是 27.66 ms，其中 `wait/io/table/sql/handler` 事件的耗时是 26.20 ms，所以瓶颈在 table IO 上。
 
-### 定位系统全局等待事件
+## 定位系统全局等待事件
 
 对单条 SQL 的分析通常不具代表性。既然有汇总表，那么可以通过汇总表找出整个系统中最慢的 SQL 以及事件。
 
@@ -187,7 +187,7 @@ mysql> select * from sys.waits_global_by_latency limit 3;
 
 这里 table IO 是最耗时的操作。
 
-### 定位最近一段时间的瓶颈
+## 定位最近一段时间的瓶颈
 
 汇总表只能代表整个系统运行至今的状况，并不能体现最近的状况。前面提到了，每类事件都有历史表，我们可以通过 `EVENT_ID` 的关联关系，定位最近一段时间最耗时的等待事件。
 
@@ -240,13 +240,13 @@ mysql> select sum(count_star)-@count_sql, sum(sum_timer_wait)*1e-12-@time_sql fr
 
 用类似的方法还可以估算出 QPS。
 
-## 诊断 IO
+# 诊断 IO
 
 执行过程中最常见的瓶颈是 IO 和锁。本文以诊断 IO 为例，展现循序渐进找出问题的方法。
 
 针对 IO 的诊断，有比 `events_waits_xxx` 更常用的几张系统表。
 
-### table_io_waits_summary_xxx
+## table_io_waits_summary_xxx
 
 `table_io_waits_summary_by_table` 由等待事件 `wait/io/table/sql/handler` 聚合而来，通过它能查看每张表的 table IO 的次数、耗时。这里的 table IO 是指访问表及索引中的数据，既包括访问硬盘，又包括访问 buffer pool。
 
@@ -265,7 +265,7 @@ mysql> select sum(count_star)-@count_sql, sum(sum_timer_wait)*1e-12-@time_sql fr
 
 视图 `sys.schema_table_statistics` 的基表是 `table_io_waits_summary_by_table`，视图 `sys.schema_index_statistics` 的基表是 `table_io_waits_summary_by_index_usage`。
 
-### file_summary_by_xxx
+## file_summary_by_xxx
 
 `table_io_waits_summary_xxx` 里包含的统计数据是 table IO，而 `file_summary_by_xxx` 里包含 file IO，即硬盘的存取。它由等待事件 `wait/io/file/xxx` 聚合而来。
 
@@ -301,7 +301,7 @@ mysql> select file_name, count_read, sys.format_time(sum_timer_read) from perfor
 
 在这个例子中，table read IO 总耗时 2.34s，而 file read IO 总耗时仅 5.03us，显然 file IO 不是读取中的瓶颈。
 
-### Buffer pool 命中率
+## Buffer pool 命中率
 
 对比 table IO 和 file IO 的次数之后，就可以算出该表的缓冲池命中率。
 
@@ -347,7 +347,7 @@ I/O sum[0]:cur[0], unzip sum[0]:cur[0]
 
 可以看到，file IO 的频率是 0，并且 buffer pool 的命中率是 100%。
 
-### 查找 table IO 的瓶颈
+## 查找 table IO 的瓶颈
 
 Table IO 是一个比较特殊的等待事件，它会嵌套其他等待事件，例如 file IO。如果 table IO 耗时高而 file IO 的占比并不多，可以进一步查找 table IO 内的其他等待事件。
 
@@ -367,7 +367,7 @@ select wait.event_name, sum(wait.timer_wait)*1e-12 from events_waits_history_lon
 
 `wait/io/file/innodb/innodb_data_file` 是读写 InnoDB 数据文件。这个例子中，table IO 中除了 file IO 没有其他事件。
 
-### 使用 strace 查看系统调用
+## 使用 strace 查看系统调用
 
 Table IO 看不出瓶颈时，可以通过 strace 查看期间 MySQL 执行了哪些系统调用。但是 strace 要求能登上 MySQL 的宿主机执行 shell 命令。
 
@@ -400,7 +400,7 @@ ls -lrt /proc/`pidof mysqld`/fd/33
 
 由于 914us 的 `pread64` 与上面的 1.3ms 的 table IO 几乎匹配，所以大部分时间花在系统调用上。
 
-## 总结
+# 总结
 
 本文从 `performance_schema` 常见的一些系统表入手，介绍了系统表的结构以及它们之间的联系。然后举例展示了如何定位到 SQL、定位有问题的等待事件、定位等待事件慢的原因。
 

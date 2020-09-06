@@ -5,13 +5,13 @@ date:   2020-2-25 20:48:57 +0800
 categories: diagnosis
 ---
 
-## 前言
+# 前言
 
 为了排查 SQL 的性能问题，一般数据库都会提供 SQL 性能视图。SQL 性能视图包含每种 SQL 的执行耗时、执行次数等信息，用于定位问题 SQL 以及原因。
 
 下面调研了几种数据库的 SQL 性能视图。
 
-## CockroachDB
+# CockroachDB
 
 CockroachDB 通过 [Statements Page](https://www.cockroachlabs.com/docs/stable/admin-ui-statements-page.html) 把统计信息以图表的形式展示在页面上，有助于定位频繁执行或延迟较高的 SQL。
 
@@ -25,7 +25,7 @@ CockroachDB 通过 [Statements Page](https://www.cockroachlabs.com/docs/stable/a
 
 ![crdb-details-page](/media/diagnosis/crdb-statements-details-page.png)
 
-## OceanBase
+# OceanBase
 
 OceanBase 提供了一系列的[系统表和视图](https://www.yuque.com/oceanbase-site/oceanbase/obinttable)。[SQL 监控](https://oceanbase.alipay.com/docs/oceanbase/OceanBase%E7%AE%A1%E7%90%86%E5%91%98%E6%89%8B%E5%86%8C/%E7%AC%AC%E4%B8%80%E9%83%A8%E5%88%86%20OceanBase%E5%9F%BA%E7%A1%80%E7%AE%A1%E7%90%86/dv8yhg)主要靠用户查询 `v$sql` 和 `v$sql_audit` 这两张视图。
 
@@ -41,7 +41,7 @@ OceanBase 提供了一系列的[系统表和视图](https://www.yuque.com/oceanb
 
 ![ob-sql-audit](/media/diagnosis/ob-sql-audit.png)
 
-## Oracle
+# Oracle
 
 Oracle 实时统计监控数据，用 [Dynamic Performance View](https://docs.oracle.com/en/database/oracle/oracle-database/19/refrn/about-dynamic-performance-views.html) 来查询。这些视图在 catalog.sql 中定义，用户必须运行 catalog.sql 才能创建这些视图。
 
@@ -70,7 +70,7 @@ Oracle 没有把 SQL 规一化再进行分类的视图。它的视图都是从 S
 
 ![oracle-sql-monitor-details](/media/diagnosis/oracle-sql-monitor-details.gif)
 
-## MySQL
+# MySQL
 
 MySQL 5.7.7 及以上版本提供了 sys schema，其中包含了一系列封装 performance_schema 的[视图](https://dev.mysql.com/doc/refman/5.7/en/sys-schema-views.html)，更便于查找问题。
 
@@ -90,7 +90,7 @@ MySQL 5.7.7 及以上版本提供了 sys schema，其中包含了一系列封装
 
 ![mysql-stmt-summary](/media/diagnosis/mysql-stmt-summary.png)
 
-## DRDS
+# DRDS
 
 DRDS 提供了 [SQL 审计与分析](https://help.aliyun.com/document_detail/95273.html) 功能。不仅支持历史 SQL 记录的查看，还能对 SQL 执行状况、性能指标、安全问题进行实时诊断分析。
 
@@ -104,7 +104,7 @@ DRDS 作为云服务，可以异步抓取日志，用专门的集群进行分析
 
 ![drds-sql-audit](/media/diagnosis/drds-sql-audit.png)
 
-## TiDB
+# TiDB
 
 TiDB 实现了与 MySQL 类似的 [statement summary tables](https://pingcap.com/docs-cn/stable/reference/performance/statement-summary/)。
 
@@ -115,7 +115,7 @@ TiDB 实现了与 MySQL 类似的 [statement summary tables](https://pingcap.com
 
 从 TiDB 4.0 起，statement summary tables 被集成到 TiDB Dashboard 中，以可视化的形式呈现。
 
-## 总结
+# 总结
 
 从这些数据库的 SQL 性能视图来看，有几种形式：
 
